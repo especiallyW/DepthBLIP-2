@@ -1,0 +1,10 @@
+{
+    "framework": "pytorch",
+    "task": "fill-mask",
+    "model": {
+        "type": "fill-mask"
+    },
+    "pipeline": {
+        "type": "fill-mask"
+    }
+}

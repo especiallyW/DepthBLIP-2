@@ -1,0 +1,16 @@
+bathroom: 58
+bedroom: 191
+bookstore: 11
+classroom: 23
+computer_lab: 3
+dining_room: 55
+foyer: 2
+home_office: 24
+kitchen: 104
+living_room: 107
+office: 38
+office_kitchen: 4
+playroom: 14
+reception_room: 5
+study: 11
+study_room: 2

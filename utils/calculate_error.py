@@ -1,0 +1,45 @@
+import torch
+
+
+def compute_each_errors(gt, pred, crop=True):
+    """metric errors"""
+    abs_diff, abs_rel, log10, a1, a2, a3, rmse_tot, rmse_log_tot = 0, 0, 0, 0, 0, 0, 0, 0
+    batch_size = gt.size(0)
+
+    if crop:
+        crop_mask = gt[0] != gt[0]
+        crop_mask = crop_mask[0, :, :]
+        crop_mask[45:471, 46:601] = 1
+
+    for sparse_gt, pred in zip(gt, pred):
+        sparse_gt = sparse_gt[0, :, :]
+        pred = pred[0, :, :]
+        h, w = sparse_gt.shape
+
+        # process gt pred
+        pred_uncropped = torch.zeros((h, w), dtype=torch.float16).cuda()
+        pred_uncropped[42 + 14:474 - 2, 40 + 20:616 - 12] = pred
+        pred = pred_uncropped
+
+        valid = (sparse_gt < 10) & (sparse_gt > 1e-3) & (pred > 1e-3)
+        if crop:
+            valid = valid & crop_mask
+        valid_gt = sparse_gt[valid].clamp(1e-3, 10)
+        valid_pred = pred[valid]
+        valid_pred = valid_pred.clamp(1e-3, 10)
+
+        # calculate result
+        thresh = torch.max((valid_gt / valid_pred), (valid_pred / valid_gt))
+        a1 += (thresh < 1.25).float().mean()
+        a2 += (thresh < 1.25 ** 2).float().mean()
+        a3 += (thresh < 1.25 ** 3).float().mean()
+        rmse = (valid_gt - valid_pred) ** 2
+        rmse_tot += torch.sqrt(torch.mean(rmse))
+        rmse_log = (torch.log(valid_gt) - torch.log(valid_pred)) ** 2
+        rmse_log_tot += torch.sqrt(torch.mean(rmse_log))
+        abs_diff += torch.mean(torch.abs(valid_gt - valid_pred))
+        abs_rel += torch.mean(torch.abs(valid_gt - valid_pred) / valid_gt)
+        log10 += torch.mean(torch.abs(torch.log10(valid_gt) - torch.log10(valid_pred)))
+
+    # return mae/a1/a2/a3/rel/log10/rmse/
+    return [metric.item() / batch_size for metric in [abs_diff, a1, a2, a3, abs_rel, log10, rmse_tot]]
